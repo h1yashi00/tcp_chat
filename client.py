@@ -8,7 +8,7 @@ class Connection:
         self.s.connect(('127.0.0.1', 50000))
         self.s.send('Yo!'.encode('utf-8'))
     def on_read(self):
-        data = self.s.recv(1024)
+        data = self.s.recv(1024).decode('utf-8')
         return data
     def on_write(self, msg):
         self.s.send(msg.encode('utf-8'))
@@ -40,4 +40,4 @@ while True:
         if reader is connection.fileno():
             msg = connection.on_read()
             print('\b\b', end='')
-            print('server >>> %s' % (msg))
+            print('server >>> %s' % (msg), end='')
