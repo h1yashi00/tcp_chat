@@ -51,6 +51,7 @@ def handle_client(client):
             sys.stdout.flush()
             print('>> ', end='')
 
+SERVER_NAME = 'server'
 writer = []
 listen = Create_server_socket('127.0.0.1', 50000)
 input_reader = Input()
@@ -69,7 +70,8 @@ while True:
                 print('client was not connect!')
             else:
                 for c in clients:
-                    c.send(msg.encode('utf-8'))
+                    data = '%s %s' % (SERVER_NAME, msg)
+                    c.send(data.encode('utf-8'))
 
         if reader is listen.fileno():
             client = listen.accept()

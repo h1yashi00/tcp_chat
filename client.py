@@ -31,9 +31,15 @@ class Cursol:
         n = len(self.cursol)
         print('\b' * n, end='')
 
+def recv_parse(data):
+    data_stliped = data.split()
+    src_name = data_stliped[0]
+    msg = ' '.join(data_stliped[1:]) # 2つ目のブランク回避
+    return src_name, msg
+
 # def remove_rn(data):
 #     data = data[:]
-#     return data 
+#     return data
 
 writer = []
 connection = Connection()
@@ -52,6 +58,7 @@ while True:
             connection.on_write(msg)
 
         if reader is connection.fileno():
-            msg = connection.on_read()
+            data = connection.on_read()
+            name, msg = recv_parse(data)
             cursol.clear_cursol()
-            print('server >>> %s' % (msg), end='')
+            print('[%s] >>> %s' % (name, msg))
