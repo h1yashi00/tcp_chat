@@ -21,19 +21,37 @@ class Create_server_socket():
 class Input():
     def fileno(self):
         return sys.stdin.fileno()
+    def readline(self):
+        return sys.stdin.readline()
+
+
+clients = []
+# ブロードキャストできるようにする
+# client
+def broadcast(sender_client, msg):
+    for c in clients:
+        # sender_client以外に送る
+        if c is not sender_client:
+            c.send(msg)
+        else:
+            pass
 
 def handle_client(client):
-    print('Now handling %s' % (client))
+    # print('Now handling %s' % (client))
+    addr, port = client.getpeername()
+    print('Connected (%s, %s)' % (addr, port))
     while (True):
         msg = client.recv(1024)
         if msg is None:
             break
         else:
-            print('client: %s' % ( msg.decode('utf-8') ), end='')
+            broadcast(client, msg)
+            print('%s:%sc >> %s' %
+                    ( addr ,port, msg.decode('utf-8')), end='')
             sys.stdout.flush()
+            print('>> ', end='')
 
 writer = []
-clients = []
 listen = Create_server_socket('127.0.0.1', 50000)
 input_reader = Input()
 
@@ -46,12 +64,12 @@ while True:
     readers, _, _ = select.select(writer, [], [])
     for reader in readers:
         if reader is input_reader.fileno():
-            msg = sys.stdin.readline().encode('utf-8')
+            msg = input_reader.readline()
             if connected == False:
                 print('client was not connect!')
             else:
                 for c in clients:
-                    c.send(msg)
+                    c.send(msg.encode('utf-8'))
 
         if reader is listen.fileno():
             client = listen.accept()
