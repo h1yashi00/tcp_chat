@@ -6,7 +6,7 @@ class Connection:
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(('127.0.0.1', 50000))
-        self.s.send('Yo!'.encode('utf-8'))
+        # self.s.send('Yo!'.encode('utf-8'))
     def on_read(self):
         data = self.s.recv(1024).decode('utf-8')
         return data
@@ -22,14 +22,28 @@ class Input:
     def fileno(self):
         return sys.stdin.fileno()
 
+class Cursol:
+    def __init__(self, cursol):
+        self.cursol = cursol
+    def print_cursol(self):
+        print(self.cursol, end='')
+    def clear_cursol(self):
+        n = len(self.cursol)
+        print('\b' * n, end='')
+
+# def remove_rn(data):
+#     data = data[:]
+#     return data 
+
 writer = []
 connection = Connection()
 input_fd = Input()
 writer.append(connection.fileno())
 writer.append(input_fd.fileno())
 
+cursol = Cursol('> ')
 while True:
-    print('> ', end='')
+    cursol.print_cursol()
     sys.stdout.flush()
     readers, _, _ = select.select(writer, [], [])
     for reader in readers:
@@ -39,5 +53,5 @@ while True:
 
         if reader is connection.fileno():
             msg = connection.on_read()
-            print('\b\b', end='')
+            cursol.clear_cursol()
             print('server >>> %s' % (msg), end='')
