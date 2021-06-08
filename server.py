@@ -66,11 +66,11 @@ while True:
     for reader in readers:
         if reader is input_reader.fileno():
             msg = input_reader.readline()
+            data = '%s %s' % (SERVER_NAME, msg)
             if connected == False:
                 print('client was not connect!')
             else:
                 for c in clients:
-                    data = '%s %s' % (SERVER_NAME, msg)
                     c.send(data.encode('utf-8'))
 
         if reader is listen.fileno():

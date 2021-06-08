@@ -3,10 +3,13 @@ import sys
 import select
 
 class Connection:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(('127.0.0.1', 50000))
         # self.s.send('Yo!'.encode('utf-8'))
+    def get_name(self):
+        return self.name
     def on_read(self):
         data = self.s.recv(1024).decode('utf-8')
         return data
@@ -42,7 +45,7 @@ def recv_parse(data):
 #     return data
 
 writer = []
-connection = Connection()
+connection = Connection('client1')
 input_fd = Input()
 writer.append(connection.fileno())
 writer.append(input_fd.fileno())
@@ -55,7 +58,8 @@ while True:
     for reader in readers:
         if reader is input_fd.fileno():
             msg = input_fd.readline()
-            connection.on_write(msg)
+            data = '%s %s' % (connection.get_name(), msg)
+            connection.on_write(data)
 
         if reader is connection.fileno():
             data = connection.on_read()
