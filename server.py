@@ -10,10 +10,8 @@ class Create_server_socket():
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.s.listen(5)
-
     def fileno(self):
         return self.s
-
     def accept(self):
         client = self.s.accept()
         return client[0]
@@ -42,7 +40,11 @@ def handle_client(client):
     print('Connected (%s, %s)' % (addr, port))
     while (True):
         msg = client.recv(1024)
-        if msg is None:
+        if not msg:
+            print('Disconnected (%s, %s)' % (addr, port))
+            clients.remove(client)
+            client.close()
+            print('clients %s' % (clients))
             break
         else:
             broadcast(client, msg)
