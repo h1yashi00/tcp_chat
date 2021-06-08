@@ -1,15 +1,13 @@
 import socket
 import sys
 import select
+import random
+import string
 
 class Connection:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(('127.0.0.1', 50000))
-        # self.s.send('Yo!'.encode('utf-8'))
-    def get_name(self):
-        return self.name
     def on_read(self):
         data = self.s.recv(1024).decode('utf-8')
         return data
@@ -34,6 +32,9 @@ class Cursol:
         n = len(self.cursol)
         print('\b' * n, end='')
 
+def randomname(n):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=n))
+
 def recv_parse(data):
     data_stliped = data.split()
     src_name = data_stliped[0]
@@ -45,7 +46,9 @@ def recv_parse(data):
 #     return data
 
 writer = []
-connection = Connection('client1')
+connection = Connection()
+name = '%s' % randomname(7)
+connection.on_write(name)
 input_fd = Input()
 writer.append(connection.fileno())
 writer.append(input_fd.fileno())
@@ -58,8 +61,7 @@ while True:
     for reader in readers:
         if reader is input_fd.fileno():
             msg = input_fd.readline()
-            data = '%s %s' % (connection.get_name(), msg)
-            connection.on_write(data)
+            connection.on_write(msg)
 
         if reader is connection.fileno():
             data = connection.on_read()
