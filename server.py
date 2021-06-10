@@ -35,7 +35,7 @@ def broadcast(sender_client=None, msg=''):
         else:
             pass
 
-def name_exitst(new_name):
+def name_exist(new_name):
     for name in clients_name.values():
         if name == new_name:
             return True
@@ -44,7 +44,7 @@ def name_exitst(new_name):
 def handle_client(client):
     addr, port = client.getpeername()
     name = client.recv(1024).decode('utf-8')
-    if name_exitst(name) == True:
+    if name_exist(name) == True:
         client.send('server Error: Your name is already exist'.encode('utf-8'))
         client.close()
         return
