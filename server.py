@@ -22,51 +22,105 @@ class Input():
     def readline(self):
         return sys.stdin.readline()
 
-clients_name = {}
+class Clients_name():
+    _socks = []
+    _names = []
+    def add(self, sock, name):
+        self._socks.append(sock)
+        self._names.append(name)
+    def get_name(self, want_sock):
+        i = self._socks.index(want_sock)
+        return self._names[i]
+    def get_sock(self, want_name):
+        i = self._names.index(want_name)
+        return self._socks[i]
+    def name_exist(self, ex_name):
+        return ex_name in self._names
+    def get_names(self):
+        return self._names
+    def get_socks(self):
+        return self._socks
+    def remove(self, sock):
+        name = self.get_name(sock)
+        self._names.remove(name)
+        self._socks.remove(sock)
+
+def check_command(data):
+    if data[-1] == '\n':
+        print('True')
+        data = data[:-1]
+    if data == 'connections':
+        return ' '.join(clients.get_names())
+    else:
+        return 'invalid command'
+
+def choice_method(sender, data):
+    if data[0] == '@':
+        splited_data = data[1:].split()
+        name = splited_data[0]
+        msg = ' '.join(splited_data[1:])
+        if clients.name_exist(name) == False:
+            return sender, 'name not exist'
+        sender_name = clients.get_name(sender)
+        dest_sock = clients.get_sock(name)
+        msg = '%s %s' % (sender_name, msg)
+        return msg, dest_sock
+    elif data[0] == '/':
+        msg = check_command(data[1:])
+        return msg, None
+    else:
+        sys.stderr.write('error: occured in choice_method data: %s' % data)
+        exit(0)
+
 def broadcast(sender_client=None, msg=''):
     if sender_client == None:
-        for c in clients_name.keys():
+        for c in clients.get_socks():
             c.send(msg.encode('utf-8'))
         return
     # sender_client以外に送る
-    for c in clients_name.keys():
+    for c in clients.get_socks():
         if c is not sender_client:
             c.send(msg.encode('utf-8'))
         else:
             pass
 
-def name_exist(new_name):
-    for name in clients_name.values():
-        if name == new_name:
-            return True
-    return False
-
 def handle_client(client):
     addr, port = client.getpeername()
     name = client.recv(1024).decode('utf-8')
-    if name_exist(name) == True:
+    if clients.name_exist(name) == True:
         client.send('server Error: Your name is already exist'.encode('utf-8'))
         client.close()
         return
-    clients_name[client] = name
+    clients.add(client, name)
     print('Connected (%s, %s)' % (addr, port))
     while (True):
         msg = client.recv(1024).decode('utf-8')
         if not msg:
             print('Disconnected (%s, %s)' % (addr, port))
-            data = '%s Disconnected: %s' % (SERVER_NAME, clients_name.get(client))
+            data = '%s Disconnected: %s' % (SERVER_NAME, clients.get_name(client))
             broadcast(msg=data)
-            del clients_name[client]
+            clients.remove(client)
             client.close()
             break
-        data = '%s %s' % (clients_name.get(client), msg)
-        broadcast(sender_client=client, msg=data)
-        print('%s:%sc >> %s' %
-                (addr, port, msg), end='')
-        sys.stdout.flush()
-        print('>> ', end='')
+        if msg[0] == '@' or msg[0] == '/':
+            data, dst_sock = choice_method(client, msg)
+            msg = '%s %s' % (SERVER_NAME, data)
+            if dst_sock == None:
+                client.send(msg.encode('utf-8'))
+                print('%s:%sc >> %s' % (addr, port, msg), end='')
+            else:
+                dst_sock.send(msg.encode('utf-8'))
+                print('%s:%sc >> %s' % (addr, port, msg), end='')
+        else:
+            data = '%s %s' % (clients.get_name(client), msg)
+            broadcast(sender_client=client, msg=data)
+            print('%s:%sc >> %s' %
+                    (addr, port, msg), end='')
+            sys.stdout.flush()
+            # print('>> ', end='')
 
 SERVER_NAME = 'server'
+clients = Clients_name()
 writer = []
 listen = Create_server_socket('127.0.0.1', 50000)
 input_reader = Input()
@@ -74,7 +128,6 @@ input_reader = Input()
 writer.append(listen.fileno())
 writer.append(input_reader.fileno())
 
-connected = False
 while True:
     # select(write, read, sig)
     readers, _, _ = select.select(writer, [], [])
@@ -82,14 +135,13 @@ while True:
         if reader is input_reader.fileno():
             msg = input_reader.readline()
             data = '%s %s' % (SERVER_NAME, msg)
-            if connected == False:
+            if len(clients.get_socks()) == 0:
                 print('client was not connect!')
             else:
-                for c in clients_name.keys():
+                for c in clients.get_socks():
                     c.send(data.encode('utf-8'))
 
         if reader is listen.fileno():
             client = listen.accept()
             thread = threading.Thread(target=handle_client, args=(client,))
             thread.start()
-            connected = True
