@@ -20,7 +20,7 @@ class Proxy():
         s.connect((self._out_address, self._out_port))
         return s
 
-p = Proxy('localhost', 50001, 'localhost', 50000)
+p = Proxy('localhost', 25565, 'syuu.net', 25565)
 client_proxy = p.accept()
 print('debug: %s' % client_proxy)
 proxy_server = p.connect()
@@ -32,10 +32,20 @@ while True:
     for reader in readers:
         if reader is client_proxy.fileno():
             data = client_proxy.recv(1024)
-            print('client->proxy: %s' % data)
+            if not data:
+                print('cloned client')
+                proxy_server.close()
+                client_proxy.close()
+                break
+            print('->: %s' % data)
             proxy_server.send(data)
 
         if reader is proxy_server.fileno():
             data = proxy_server.recv(1024)
-            print('server<-proxy: %s' % data)
+            if not data:
+                print('cloned server')
+                proxy_server.close()
+                client_proxy.close()
+                break
+            print('<-: %s' % data)
             client_proxy.send(data)
